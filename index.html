@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Splat Blade: Fruit Arcade</title>
+  <!-- Google Fonts for playful game typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Double canvas structure: one for backgrounds, one for active game physics -->
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="game-canvas"></canvas>
+
+    <!-- In-Game HUD (Heads-Up Display) -->
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <div class="score-container">
+          <span class="hud-label">SCORE</span>
+          <span id="score-val">0</span>
+        </div>
+        <div id="multiplier-tag" class="hidden">2X ACTIVE</div>
+      </div>
+      
+      <div class="hud-center">
+        <!-- Combo alerts will flash here dynamically -->
+        <div id="hud-combo-alert"></div>
+      </div>
+
+      <div class="hud-right">
+        <!-- Classic Mode Lives -->
+        <div id="lives-container" class="hud-item">
+          <div class="heart" id="heart-1">❤</div>
+          <div class="heart" id="heart-2">❤</div>
+          <div class="heart" id="heart-3">❤</div>
+        </div>
+        <!-- Time/Timer (Zen and Arcade modes) -->
+        <div id="timer-container" class="hud-item hidden">
+          <span class="hud-label">TIME</span>
+          <span id="timer-val">60</span>s
+        </div>
+        <button id="pause-btn" class="hud-btn">⏸</button>
+      </div>
+
+      <!-- Active Power-ups Bar -->
+      <div id="active-powerups"></div>
+    </div>
+
+    <!-- UI Overlay Screens (Glassmorphic) -->
+    <div id="ui-overlay">
+      
+      <!-- MAIN MENU -->
+      <div id="main-menu" class="menu-screen active">
+        <div class="logo-area">
+          <h1 class="game-title">SPLAT<br><span class="title-sub">BLADE</span></h1>
+          <p class="tagline">FRUIT ARCADE</p>
+        </div>
+
+        <!-- Mascot SVG Chef -->
+        <div class="mascot-container">
+          <svg class="mascot" viewBox="0 0 100 100">
+            <circle cx="50" cy="55" r="30" fill="#FFEB3B" stroke="#F57F17" stroke-width="2" />
+            <!-- Chef Hat -->
+            <path d="M 35 28 L 65 28 L 60 12 L 40 12 Z" fill="#FFFFFF" stroke="#37474F" stroke-width="2" />
+            <path d="M 30 28 C 30 23, 40 20, 50 25 C 60 20, 70 23, 70 28 Z" fill="#FFFFFF" stroke="#37474F" stroke-width="2" />
+            <!-- Cheerful Eyes -->
+            <path d="M 40 48 Q 45 43 50 48" fill="none" stroke="#37474F" stroke-width="3" stroke-linecap="round" />
+            <path d="M 60 48 Q 65 43 70 48" fill="none" stroke="#37474F" stroke-width="3" stroke-linecap="round" />
+            <!-- Rosy Cheeks -->
+            <circle cx="36" cy="56" r="5" fill="#FF8A80" opacity="0.8" />
+            <circle cx="64" cy="56" r="5" fill="#FF8A80" opacity="0.8" />
+            <!-- Happy Mouth -->
+            <path d="M 45 60 Q 50 67 55 60" fill="none" stroke="#37474F" stroke-width="3" stroke-linecap="round" />
+            <!-- Chef Knife -->
+            <g class="mascot-knife">
+              <path d="M 72 45 L 85 32 L 88 35 L 75 48 Z" fill="#CFD8DC" stroke="#37474F" stroke-width="1.5" />
+              <path d="M 70 47 L 73 44 L 67 38 L 64 41 Z" fill="#8D6E63" stroke="#37474F" stroke-width="1.5" />
+            </g>
+          </svg>
+        </div>
+
+        <div class="menu-modes">
+          <button class="mode-btn" data-mode="classic">
+            <span class="btn-icon">🍉</span>
+            <span class="btn-text">CLASSIC</span>
+          </button>
+          <button class="mode-btn" data-mode="arcade">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">ARCADE</span>
+          </button>
+          <button class="mode-btn" data-mode="zen">
+            <span class="btn-icon">🌸</span>
+            <span class="btn-text">ZEN</span>
+          </button>
+          <button class="mode-btn" data-mode="survival">
+            <span class="btn-icon">🔥</span>
+            <span class="btn-text">SURVIVAL</span>
+          </button>
+          <button class="mode-btn" data-mode="challenge">
+            <span class="btn-icon">🎯</span>
+            <span class="btn-text">CHALLENGE</span>
+          </button>
+        </div>
+
+        <div class="bottom-nav">
+          <button id="nav-shop" class="nav-btn" title="Shop">🛒</button>
+          <button id="nav-challenges" class="nav-btn" title="Challenges">🎯</button>
+          <button id="nav-leaderboard" class="nav-btn" title="Leaderboard">🏆</button>
+          <button id="nav-profile" class="nav-btn" title="Profile">👤</button>
+          <button id="nav-settings" class="nav-btn" title="Settings">⚙</button>
+        </div>
+      </div>
+
+      <!-- PAUSE SCREEN -->
+      <div id="pause-screen" class="menu-screen hidden">
+        <h2 class="screen-title">GAME PAUSED</h2>
+        <div class="menu-actions">
+          <button id="resume-btn" class="action-btn primary">RESUME</button>
+          <button id="restart-btn" class="action-btn">RESTART</button>
+          <button id="exit-btn" class="action-btn danger">MAIN MENU</button>
+        </div>
+      </div>
+
+      <!-- GAME OVER SCREEN -->
+      <div id="game-over-screen" class="menu-screen hidden">
+        <div class="game-over-header">
+          <h2 class="game-over-title">GAME OVER</h2>
+          <p id="game-over-sub"></p>
+        </div>
+        
+        <div class="score-summary">
+          <div class="summary-card">
+            <span class="card-label">FINAL SCORE</span>
+            <span id="final-score-val" class="card-value highlight">0</span>
+          </div>
+          <div class="summary-card">
+            <span class="card-label">BEST COMBO</span>
+            <span id="best-combo-val" class="card-value">0</span>
+          </div>
+          <div class="summary-card">
+            <span class="card-label">COINS EARNED</span>
+            <span id="coins-earned-val" class="card-value gold">0</span>
+          </div>
+        </div>
+
+        <div class="reward-ad-section">
+          <p>Out of lives? Watch a quick sponsor ad to revive!</p>
+          <button id="ad-revive-btn" class="ad-btn">
+            🎬 Revive with +1 Life
+          </button>
+        </div>
+
+        <div class="menu-actions">
+          <button id="gameover-restart-btn" class="action-btn primary">PLAY AGAIN</button>
+          <button id="gameover-exit-btn" class="action-btn danger">MAIN MENU</button>
+        </div>
+      </div>
+
+      <!-- SETTINGS MODAL -->
+      <div id="settings-screen" class="menu-screen hidden">
+        <button class="back-btn">⬅ BACK</button>
+        <h2 class="screen-title">SETTINGS</h2>
+        
+        <div class="settings-list">
+          <div class="setting-item">
+            <label>Sound FX Volume</label>
+            <input type="range" id="sound-volume" min="0" max="100" value="80">
+          </div>
+          <div class="setting-item">
+            <label>Music Volume</label>
+            <input type="range" id="music-volume" min="0" max="100" value="40">
+          </div>
+          <div class="setting-item toggle-item">
+            <label for="screen-shake-toggle">Screen Shake Effects</label>
+            <input type="checkbox" id="screen-shake-toggle" checked>
+          </div>
+          <div class="setting-item toggle-item">
+            <label for="perf-mode-toggle">High Performance Mode</label>
+            <input type="checkbox" id="perf-mode-toggle">
+          </div>
+          
+          <div class="setting-item">
+            <label>Blade Trail Skin</label>
+            <div class="skin-selector">
+              <button class="skin-option active" data-skin="neon">Neon Blue</button>
+              <button class="skin-option" data-skin="fire">Fire Slash</button>
+              <button class="skin-option" data-skin="rainbow">Rainbow Glow</button>
+              <button class="skin-option" data-skin="golden">Golden Spark</button>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label>Background Theme</label>
+            <div class="bg-selector">
+              <button class="bg-option active" data-bg="tropical">Tropical</button>
+              <button class="bg-option" data-bg="sunset">Sunset</button>
+              <button class="bg-option" data-bg="japanese">Zen Garden</button>
+              <button class="bg-option" data-bg="neon">Neon Grid</button>
+              <button class="bg-option" data-bg="jungle">Jungle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHOP SCREEN -->
+      <div id="shop-screen" class="menu-screen hidden">
+        <button class="back-btn">⬅ BACK</button>
+        <div class="shop-header">
+          <h2 class="screen-title">COIN SHOP</h2>
+          <div class="currency-display">🪙 <span id="shop-coins">100</span></div>
+        </div>
+        
+        <div class="shop-tabs">
+          <button class="shop-tab active" data-tab="blades">Blades</button>
+          <button class="shop-tab" data-tab="bg-themes">Backgrounds</button>
+        </div>
+
+        <div class="shop-grid" id="shop-grid">
+          <!-- Populated dynamically via JS -->
+        </div>
+
+        <div class="reward-ad-section">
+          <p>Need more coins?</p>
+          <button id="ad-coins-btn" class="ad-btn">
+            🎬 Watch Ad (+50 Coins)
+          </button>
+        </div>
+      </div>
+
+      <!-- DAILY CHALLENGES SCREEN -->
+      <div id="challenges-screen" class="menu-screen hidden">
+        <button class="back-btn">⬅ BACK</button>
+        <h2 class="screen-title">DAILY CHALLENGES</h2>
+        <p class="challenge-reset-timer">Resets in: <span id="challenge-timer">12h 43m</span></p>
+
+        <div class="challenges-list" id="challenges-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- LEADERBOARD SCREEN -->
+      <div id="leaderboard-screen" class="menu-screen hidden">
+        <button class="back-btn">⬅ BACK</button>
+        <h2 class="screen-title">LEADERBOARD</h2>
+
+        <div class="leaderboard-modes-selector">
+          <button class="leaderboard-mode-tab active" data-mode="classic">Classic</button>
+          <button class="leaderboard-mode-tab" data-mode="arcade">Arcade</button>
+          <button class="leaderboard-mode-tab" data-mode="zen">Zen</button>
+          <button class="leaderboard-mode-tab" data-mode="survival">Survival</button>
+        </div>
+
+        <div class="leaderboard-table-container">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PROFILE & STATS SCREEN -->
+      <div id="profile-screen" class="menu-screen hidden">
+        <button class="back-btn">⬅ BACK</button>
+        <h2 class="screen-title">PLAYER PROFILE</h2>
+        
+        <div class="profile-summary">
+          <div class="profile-avatar">👨‍🍳</div>
+          <div class="profile-details">
+            <h3 class="profile-name">Fruit Chef</h3>
+            <p class="profile-rank">Rank: Master Cutter</p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-num" id="stat-total-slices">0</span>
+            <span class="stat-label">Total Slices</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-games-played">0</span>
+            <span class="stat-label">Games Played</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-max-combo">0</span>
+            <span class="stat-label">Max Combo</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="stat-bombs-hit">0</span>
+            <span class="stat-label">Bombs Hit</span>
+          </div>
+        </div>
+
+        <h3 class="section-subtitle">ACHIEVEMENTS</h3>
+        <div class="achievements-list" id="achievements-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JS Modules script tags -->
+  <script type="module" src="src/game.js"></script>
+</body>
+</html>
